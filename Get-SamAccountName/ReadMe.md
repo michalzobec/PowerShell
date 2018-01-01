@@ -9,3 +9,4 @@ https://creativecommons.org/licenses/by-sa/4.0/
 - filter and compare of the list of emails with Exchange list of existing mailbox;
 - get SamAccountName for each existing mailbox;
 - save list of SamAccountName to text file without separator's;
+- this script is writed for Exchange Server 2013;
