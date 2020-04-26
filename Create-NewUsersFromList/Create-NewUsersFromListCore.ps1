@@ -47,12 +47,14 @@ https://github.com/michalzobec/esi-build/blob/master/changelog.md
 #region variables
 # special variables
 $ScriptName = "Create New Users from List"
-$ScriptVersion = "20.04.20.144059"
-$ScriptShortVersion = "20.04.0"
+$ScriptVersion = "20.04.26.214559"
+$ScriptShortVersion = "20.04.1"
 $ScriptVersionStatus = "DEV WIP"
 $dirScriptDirRoot = (Split-Path $myinvocation.MyCommand.Path)
-$PasswordLength = 10
-$PasswordPart = "Qg1."
+$PasswordLength = "4"
+$StaticPasswordPart = "GreenDog4Rand:"
+$RandomPassword = $null
+$NewPassword = $null
 #regionend
 
 #region function write-log
@@ -113,7 +115,8 @@ if (!(Test-Path $InputFileName)) {
     Write-Warning "The input file name you specified can't be found."
     Write-Log -LogFile $LogFile -Message "ZOBEC Consulting" -Level INFO
     exit
-} else {
+}
+else {
     Write-Log -LogFile $LogFile -Message "dirScriptDirRoot $dirScriptDirRoot" -Level DEBUG
     Write-Log -LogFile $LogFile -Message "InputFileName $InputFileName" -Level DEBUG
 }
@@ -126,7 +129,6 @@ $UsersList = Import-Csv "$InputFileName" -Delimiter ";" -ErrorAction Stop
 $ascii = $NULL; For ($a = 33; $a -le 126; $a++) { $ascii += , [char][byte]$a }
 
 Function Get-TempPassword() {
-
     Param(
         [int]$length = $PasswordLength,
         [string[]]$sourcedata
@@ -139,7 +141,6 @@ Function Get-TempPassword() {
 }
 
 foreach ($User in $UsersList) {
-
     $UserID = $User.UserID
     $FirstName = $User.Firstname
     $LastName = $User.Lastname
@@ -166,19 +167,25 @@ foreach ($User in $UsersList) {
     # Else {
     #     #If a user does not exist then create a new user account
 
-# generating new password
+    #region Password
+    Clear-Variable RandomPassword
+    Clear-Variable NewPassword
+
+    # generating dynamic part of password
     Write-Log -LogFile $LogFile -Message "Generating new password" -Level DEBUG
-    $GetRandomPassword = Get-TempPassword -length $PasswordLength -sourcedata $ascii
-    Write-Log -LogFile $LogFile -Message "New password '$GetRandomPassword' was generated" -Level DEBUG
-    $GetRandomPassword += $PasswordPart
-    Write-Log -LogFile $LogFile -Message "Updated password '$GetRandomPassword'" -Level DEBUG
+    $RandomPassword = Get-TempPassword -length $PasswordLength -sourcedata $ascii
+    Write-Log -LogFile $LogFile -Message "New password '$RandomPassword' was generated" -Level DEBUG
+    # merge with static part of password
+    $RandomPassword = $StaticPasswordPart + $RandomPassword
+    Write-Log -LogFile $LogFile -Message "Updated password '$RandomPassword'" -Level DEBUG
 
     # converting to secure string
     Write-Log -LogFile $LogFile -Message "converting password to secure string" -Level DEBUG
-    $NewPassword = ConvertTo-SecureString -String $GetRandomPassword -AsPlainText -Force
+    $NewPassword = ConvertTo-SecureString -String $RandomPassword -AsPlainText -Force
     Write-Log -LogFile $LogFile -Message "password was converted to secure string" -Level DEBUG
+    #endregion
 
-    # creating new account
+    #region creating new account
     Write-Log -LogFile $LogFile -Message "Creating new account." -Level DEBUG
     Try {
         Write-Log -LogFile $LogFile -Message "New-LocalUser Name '$UserID', FullName '$FullName', Description '$Description', Password '$NewPassword'" -Level DEBUG
@@ -191,8 +198,9 @@ foreach ($User in $UsersList) {
         Write-Log -LogFile $LogFile -Message "Error: '$_.Exception.Message'" -Level ERROR
         exit
     }
+    #endregion
 
-    # assigning Users group
+    #region assigning Users group
     Try {
         Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Users', Member '$UserID'" -Level DEBUG
         Add-LocalGroupMember -Group "Users" -Member "$UserID" -ErrorAction Stop
@@ -202,7 +210,7 @@ foreach ($User in $UsersList) {
         Write-Log -LogFile $LogFile -Message "Error: '$_.Exception.Message'" -Level ERROR
         exit
     }
-
+    #endregion
 
     #region assigning Administrators group
     If ($IsAdmin -like $True) {
@@ -221,7 +229,6 @@ foreach ($User in $UsersList) {
         Write-Log -LogFile $LogFile -Message "IsAdmin: False" -Level DEBUG
     }
     #regionend
-
 
     #region assigning Remote Desktop Users group
     If ($IsRemoteUser -like $True) {
@@ -243,9 +250,9 @@ foreach ($User in $UsersList) {
     #regionend
 
     # final message 
-    Write-Log -LogFile $LogFile -Message "Created user account $UserID, with password '$GetRandomPassword'." -Level DEBUG
+    Write-Log -LogFile $LogFile -Message "Created user account $UserID, with password '$RandomPassword'." -Level DEBUG
     # final message to special file
-    Add-Content "$GeneratedUsersList" -Value "User: $UserID; Password: '$GetRandomPassword'`n"
+    Add-Content "$GeneratedUsersList" -Value "User: $UserID; Password: '$RandomPassword'"
     # }
 }
 
