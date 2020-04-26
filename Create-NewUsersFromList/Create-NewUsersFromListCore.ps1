@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 #Requires -Version 7
 Set-StrictMode -Version 7
 
@@ -51,7 +51,8 @@ $ScriptVersion = "20.04.20.144059"
 $ScriptShortVersion = "20.04.0"
 $ScriptVersionStatus = "DEV WIP"
 $dirScriptDirRoot = (Split-Path $myinvocation.MyCommand.Path)
-$PasswordLength = 12
+$PasswordLength = 10
+$PasswordPart = "Qg1."
 #regionend
 
 #region function write-log
@@ -112,12 +113,15 @@ if (!(Test-Path $InputFileName)) {
     Write-Warning "The input file name you specified can't be found."
     Write-Log -LogFile $LogFile -Message "ZOBEC Consulting" -Level INFO
     exit
+} else {
+    Write-Log -LogFile $LogFile -Message "dirScriptDirRoot $dirScriptDirRoot" -Level DEBUG
+    Write-Log -LogFile $LogFile -Message "InputFileName $InputFileName" -Level DEBUG
 }
 $GeneratedUsersList = $dirScriptDirRoot + "\GeneratedUsersList.csv"
 
 
 #Enter a path to your import CSV file
-$UsersList = Import-Csv "$InputFileName"
+$UsersList = Import-Csv "$InputFileName" -Delimiter ";" -ErrorAction Stop
 # Password length and character set to use for random password generation
 $ascii = $NULL; For ($a = 33; $a -le 126; $a++) { $ascii += , [char][byte]$a }
 
@@ -146,6 +150,12 @@ foreach ($User in $UsersList) {
     # split variables
     $FullName = "$LastName $FirstName"
 
+    Write-Log -LogFile $LogFile -Message "UserID $UserID" -Level DEBUG
+    Write-Log -LogFile $LogFile -Message "FullName $FullName" -Level DEBUG
+    Write-Log -LogFile $LogFile -Message "Description $Description" -Level DEBUG
+    Write-Log -LogFile $LogFile -Message "IsAdmin $IsAdmin" -Level DEBUG
+    Write-Log -LogFile $LogFile -Message "IsRemoteUser $IsRemoteUser" -Level DEBUG
+
     #Check if the user account already exists in AD
     # If (Get-LocalUser -F { Name -eq $UserID } -ErrorAction Continue) {
     #     #If user does exist, output a warning message
@@ -156,9 +166,12 @@ foreach ($User in $UsersList) {
     # Else {
     #     #If a user does not exist then create a new user account
 
+# generating new password
     Write-Log -LogFile $LogFile -Message "Generating new password" -Level DEBUG
     $GetRandomPassword = Get-TempPassword -length $PasswordLength -sourcedata $ascii
     Write-Log -LogFile $LogFile -Message "New password '$GetRandomPassword' was generated" -Level DEBUG
+    $GetRandomPassword += $PasswordPart
+    Write-Log -LogFile $LogFile -Message "Updated password '$GetRandomPassword'" -Level DEBUG
 
     # converting to secure string
     Write-Log -LogFile $LogFile -Message "converting password to secure string" -Level DEBUG
@@ -168,8 +181,8 @@ foreach ($User in $UsersList) {
     # creating new account
     Write-Log -LogFile $LogFile -Message "Creating new account." -Level DEBUG
     Try {
-        New-LocalUser -Name "$UserID" -FullName "$FullName" -Description "$Description" -Password $NewPassword -ErrorAction Stop
         Write-Log -LogFile $LogFile -Message "New-LocalUser Name '$UserID', FullName '$FullName', Description '$Description', Password '$NewPassword'" -Level DEBUG
+        New-LocalUser -Name "$UserID" -FullName "$FullName" -Description "$Description" -Password $NewPassword -ErrorAction Stop
     }
     Catch {
         Write-Log -LogFile $LogFile -Message "Creating of new account was failed." -Level DEBUG
@@ -181,8 +194,8 @@ foreach ($User in $UsersList) {
 
     # assigning Users group
     Try {
-        Add-LocalGroupMember -Group "Users" -Member "$UserID" -ErrorAction Stop
         Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Users', Member '$UserID'" -Level DEBUG
+        Add-LocalGroupMember -Group "Users" -Member "$UserID" -ErrorAction Stop
     }
     Catch {
         Write-Warning $_.Exception.Message
@@ -195,8 +208,8 @@ foreach ($User in $UsersList) {
     If ($IsAdmin -like $True) {
         Write-Log -LogFile $LogFile -Message "IsAdmin: True" -Level DEBUG
         try {
-            Add-LocalGroupMember -Group "Administrators" -Member "$UserID" -ErrorAction Stop
             Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Administrators', Member '$UserID'" -Level DEBUG
+            Add-LocalGroupMember -Group "Administrators" -Member "$UserID" -ErrorAction Stop
         }
         catch {
             Write-Warning $_.Exception.Message
@@ -215,8 +228,8 @@ foreach ($User in $UsersList) {
         Write-Log -LogFile $LogFile -Message "IsRemoteUser: True" -Level DEBUG
         # assigning Remote Desktop Users group
         try {
-            Add-LocalGroupMember -Group "Remote Desktop Users" -Member "$UserID" -ErrorAction Stop
             Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Remote Desktop Users', Member '$UserID'" -Level DEBUG
+            Add-LocalGroupMember -Group "Remote Desktop Users" -Member "$UserID" -ErrorAction Stop
         }
         catch {
             Write-Warning $_.Exception.Message

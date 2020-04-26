@@ -1,5 +1,8 @@
-UserID,Lastname,Firstname,Description,IsAdmin,IsRemoteUser
-A1234,Novak,Adolf,Novak a synove,True,True
-B2345,Novak,Bohuslav,Novak a synove,True,True
-C3456,Novak,Cyril,Novak a synove,True,True
-D4567,Novak,Denis,Novak a synove,True,True
+UserID;Lastname;Firstname;Description;IsAdmin;IsRemoteUser
+A1234;Novak;Adam;Novak a synove;True;True
+B2345;Novak;Bohuslav;Novak a synove;True;True
+C3456;Novak;Cyril;Novak a synove;True;True
+D4567;Novak;Denis;Novak a synove;True;True
+E5678;Novak;Emil;Novak a synove;True;True
+F6789;Novak;Frantisek;Novak a synove;True;True
+G7890;Novak;Gabriel;Novak a synove;True;True
