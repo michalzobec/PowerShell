@@ -55,6 +55,7 @@ $PasswordLength = "4"
 $StaticPasswordPart = "GreenDog4Rand:"
 $RandomPassword = $null
 $NewPassword = $null
+$PermissionsText = $null
 #regionend
 
 #region function write-log
@@ -162,7 +163,6 @@ foreach ($User in $UsersList) {
     #     #If user does exist, output a warning message
     #     Write-Warning "A user account $UserID has already exist in this system."
     #     Write-Log -LogFile $LogFile -Message "A user account $UserID has already exist in this system." -Level ERROR
-    #     exit
     # }
     # Else {
     #     #If a user does not exist then create a new user account
@@ -218,6 +218,7 @@ foreach ($User in $UsersList) {
         try {
             Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Administrators', Member '$UserID'" -Level DEBUG
             Add-LocalGroupMember -Group "Administrators" -Member "$UserID" -ErrorAction Stop
+            $PermissionsText = "IsAdmin"
         }
         catch {
             Write-Warning $_.Exception.Message
@@ -227,6 +228,7 @@ foreach ($User in $UsersList) {
     }
     Else {
         Write-Log -LogFile $LogFile -Message "IsAdmin: False" -Level DEBUG
+        $PermissionsText = "IsNotAdmin"
     }
     #regionend
 
@@ -237,6 +239,7 @@ foreach ($User in $UsersList) {
         try {
             Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Remote Desktop Users', Member '$UserID'" -Level DEBUG
             Add-LocalGroupMember -Group "Remote Desktop Users" -Member "$UserID" -ErrorAction Stop
+            $PermissionsText += ", IsRemoteUser"
         }
         catch {
             Write-Warning $_.Exception.Message
@@ -246,13 +249,14 @@ foreach ($User in $UsersList) {
     }
     Else {
         Write-Log -LogFile $LogFile -Message "IsRemoteUser: False" -Level DEBUG
+        $PermissionsText += ", IsNotRemoteUser"
     }
     #regionend
 
     # final message 
-    Write-Log -LogFile $LogFile -Message "Created user account $UserID, with password '$RandomPassword'." -Level DEBUG
+    Write-Log -LogFile $LogFile -Message "Created user account $UserID, FullName '$FullName', password '$RandomPassword', permissions '$PermissionsText'." -Level DEBUG
     # final message to special file
-    Add-Content "$GeneratedUsersList" -Value "User: $UserID; Password: '$RandomPassword'"
+    Add-Content "$GeneratedUsersList" -Value "User $UserID, FullName '$FullName', password '$RandomPassword', permissions '$PermissionsText'."
     # }
 }
 
