@@ -15,7 +15,7 @@ Set-StrictMode -Version 7
     Log file, created local accounts.
 
 .EXAMPLE
-    C:\> Create-NewUsersFromList.ps1
+    C:\> Remove-Accounts.ps1
 
 .NOTES
     Twitter: @michalzobec

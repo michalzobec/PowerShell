@@ -158,106 +158,109 @@ foreach ($User in $UsersList) {
     Write-Log -LogFile $LogFile -Message "IsAdmin $IsAdmin" -Level DEBUG
     Write-Log -LogFile $LogFile -Message "IsRemoteUser $IsRemoteUser" -Level DEBUG
 
-    #Check if the user account already exists in AD
-    # If (Get-LocalUser -F { Name -eq $UserID } -ErrorAction Continue) {
-    #     #If user does exist, output a warning message
-    #     Write-Warning "A user account $UserID has already exist in this system."
-    #     Write-Log -LogFile $LogFile -Message "A user account $UserID has already exist in this system." -Level ERROR
-    # }
-    # Else {
-    #     #If a user does not exist then create a new user account
-
-    #region Password
-    Clear-Variable RandomPassword
-    Clear-Variable NewPassword
-
-    # generating dynamic part of password
-    Write-Log -LogFile $LogFile -Message "Generating new password" -Level DEBUG
-    $RandomPassword = Get-TempPassword -length $PasswordLength -sourcedata $ascii
-    Write-Log -LogFile $LogFile -Message "New password '$RandomPassword' was generated" -Level DEBUG
-    # merge with static part of password
-    $RandomPassword = $StaticPasswordPart + $RandomPassword
-    Write-Log -LogFile $LogFile -Message "Updated password '$RandomPassword'" -Level DEBUG
-
-    # converting to secure string
-    Write-Log -LogFile $LogFile -Message "converting password to secure string" -Level DEBUG
-    $NewPassword = ConvertTo-SecureString -String $RandomPassword -AsPlainText -Force
-    Write-Log -LogFile $LogFile -Message "password was converted to secure string" -Level DEBUG
-    #endregion
-
-    #region creating new account
-    Write-Log -LogFile $LogFile -Message "Creating new account." -Level DEBUG
-    Try {
-        Write-Log -LogFile $LogFile -Message "New-LocalUser Name '$UserID', FullName '$FullName', Description '$Description', Password '$NewPassword'" -Level DEBUG
-        New-LocalUser -Name "$UserID" -FullName "$FullName" -Description "$Description" -Password $NewPassword -ErrorAction Stop
-    }
-    Catch {
-        Write-Log -LogFile $LogFile -Message "Creating of new account was failed." -Level DEBUG
-        Write-Warning -Message "Creating of new account was failed."
-        Write-Warning $_.Exception.Message
-        Write-Log -LogFile $LogFile -Message "Error: '$_.Exception.Message'" -Level ERROR
-        exit
+    #region Check if user account is exist
+    $UserExists = [bool](Get-LocalUser -Name "$UserID" -ErrorAction Continue 2>$null)
+    if (($UserExists)) {
+        # If user not exist, warning
+        Write-Warning "A user account $UserID has already exist in this system."
+        Write-Log -LogFile $LogFile -Message "A user account $UserID has already exist in this system." -Level ERROR
     }
     #endregion
 
-    #region assigning Users group
-    Try {
-        Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Users', Member '$UserID'" -Level DEBUG
-        Add-LocalGroupMember -Group "Users" -Member "$UserID" -ErrorAction Stop
-    }
-    Catch {
-        Write-Warning $_.Exception.Message
-        Write-Log -LogFile $LogFile -Message "Error: '$_.Exception.Message'" -Level ERROR
-        exit
-    }
-    #endregion
+    #region If user exist, create it
+    Else {
+        #region Password
+        Clear-Variable RandomPassword
+        Clear-Variable NewPassword
 
-    #region assigning Administrators group
-    If ($IsAdmin -like $True) {
-        Write-Log -LogFile $LogFile -Message "IsAdmin: True" -Level DEBUG
-        try {
-            Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Administrators', Member '$UserID'" -Level DEBUG
-            Add-LocalGroupMember -Group "Administrators" -Member "$UserID" -ErrorAction Stop
-            $PermissionsText = "IsAdmin"
+        # generating dynamic part of password
+        Write-Log -LogFile $LogFile -Message "Generating new password" -Level DEBUG
+        $RandomPassword = Get-TempPassword -length $PasswordLength -sourcedata $ascii
+        Write-Log -LogFile $LogFile -Message "New password '$RandomPassword' was generated" -Level DEBUG
+        # merge with static part of password
+        $RandomPassword = $StaticPasswordPart + $RandomPassword
+        Write-Log -LogFile $LogFile -Message "Updated password '$RandomPassword'" -Level DEBUG
+
+        # converting to secure string
+        Write-Log -LogFile $LogFile -Message "converting password to secure string" -Level DEBUG
+        $NewPassword = ConvertTo-SecureString -String $RandomPassword -AsPlainText -Force
+        Write-Log -LogFile $LogFile -Message "password was converted to secure string" -Level DEBUG
+        #endregion
+
+        #region creating new account
+        Write-Log -LogFile $LogFile -Message "Creating new account." -Level DEBUG
+        Try {
+            Write-Log -LogFile $LogFile -Message "New-LocalUser Name '$UserID', FullName '$FullName', Description '$Description', Password '$NewPassword'" -Level DEBUG
+            New-LocalUser -Name "$UserID" -FullName "$FullName" -Description "$Description" -Password $NewPassword -ErrorAction Stop
         }
-        catch {
+        Catch {
+            Write-Log -LogFile $LogFile -Message "Creating of new account was failed." -Level DEBUG
+            Write-Warning -Message "Creating of new account was failed."
             Write-Warning $_.Exception.Message
             Write-Log -LogFile $LogFile -Message "Error: '$_.Exception.Message'" -Level ERROR
             exit
         }
-    }
-    Else {
-        Write-Log -LogFile $LogFile -Message "IsAdmin: False" -Level DEBUG
-        $PermissionsText = "IsNotAdmin"
-    }
-    #regionend
+        #endregion
 
-    #region assigning Remote Desktop Users group
-    If ($IsRemoteUser -like $True) {
-        Write-Log -LogFile $LogFile -Message "IsRemoteUser: True" -Level DEBUG
-        # assigning Remote Desktop Users group
-        try {
-            Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Remote Desktop Users', Member '$UserID'" -Level DEBUG
-            Add-LocalGroupMember -Group "Remote Desktop Users" -Member "$UserID" -ErrorAction Stop
-            $PermissionsText += ", IsRemoteUser"
+        #region assigning Users group
+        Try {
+            Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Users', Member '$UserID'" -Level DEBUG
+            Add-LocalGroupMember -Group "Users" -Member "$UserID" -ErrorAction Stop
         }
-        catch {
+        Catch {
             Write-Warning $_.Exception.Message
             Write-Log -LogFile $LogFile -Message "Error: '$_.Exception.Message'" -Level ERROR
             exit
         }
-    }
-    Else {
-        Write-Log -LogFile $LogFile -Message "IsRemoteUser: False" -Level DEBUG
-        $PermissionsText += ", IsNotRemoteUser"
-    }
-    #regionend
+        #endregion
 
-    # final message 
-    Write-Log -LogFile $LogFile -Message "Created user account $UserID, FullName '$FullName', password '$RandomPassword', permissions '$PermissionsText'." -Level DEBUG
-    # final message to special file
-    Add-Content "$GeneratedUsersList" -Value "User $UserID, FullName '$FullName', password '$RandomPassword', permissions '$PermissionsText'."
-    # }
+        #region assigning Administrators group
+        If ($IsAdmin -like $True) {
+            Write-Log -LogFile $LogFile -Message "IsAdmin: True" -Level DEBUG
+            try {
+                Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Administrators', Member '$UserID'" -Level DEBUG
+                Add-LocalGroupMember -Group "Administrators" -Member "$UserID" -ErrorAction Stop
+                $PermissionsText = "IsAdmin"
+            }
+            catch {
+                Write-Warning $_.Exception.Message
+                Write-Log -LogFile $LogFile -Message "Error: '$_.Exception.Message'" -Level ERROR
+                exit
+            }
+        }
+        Else {
+            Write-Log -LogFile $LogFile -Message "IsAdmin: False" -Level DEBUG
+            $PermissionsText = "IsNotAdmin"
+        }
+        #regionend
+
+        #region assigning Remote Desktop Users group
+        If ($IsRemoteUser -like $True) {
+            Write-Log -LogFile $LogFile -Message "IsRemoteUser: True" -Level DEBUG
+            # assigning Remote Desktop Users group
+            try {
+                Write-Log -LogFile $LogFile -Message "Add-LocalGroupMember Group 'Remote Desktop Users', Member '$UserID'" -Level DEBUG
+                Add-LocalGroupMember -Group "Remote Desktop Users" -Member "$UserID" -ErrorAction Stop
+                $PermissionsText += ", IsRemoteUser"
+            }
+            catch {
+                Write-Warning $_.Exception.Message
+                Write-Log -LogFile $LogFile -Message "Error: '$_.Exception.Message'" -Level ERROR
+                exit
+            }
+        }
+        Else {
+            Write-Log -LogFile $LogFile -Message "IsRemoteUser: False" -Level DEBUG
+            $PermissionsText += ", IsNotRemoteUser"
+        }
+        #regionend
+
+        # final message
+        Write-Log -LogFile $LogFile -Message "Created user account $UserID, FullName '$FullName', password '$RandomPassword', permissions '$PermissionsText'." -Level DEBUG
+        # final message to special file
+        Add-Content "$GeneratedUsersList" -Value "User $UserID, FullName '$FullName', password '$RandomPassword', permissions '$PermissionsText'."
+    }
+    #endregion
 }
 
 
