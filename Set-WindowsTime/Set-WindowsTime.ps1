@@ -1,13 +1,12 @@
-﻿#Requires -Version 5
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
+#Requires -Version 5
 Set-StrictMode -Version 5
 
 <#
 .SYNOPSIS
-    ZOBEC Consulting
     Set Windows Time Service (Commandline Tool)
     (c) 2018-2019 ZOBEC Consulting, Michal Zobec. All Rights Reserved.
-    Licensed under [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)
+    Licensed under Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 
 .DESCRIPTION
     For single run configure and start Windows Time Service with defined time (NTP) servers.
@@ -88,8 +87,9 @@ Write-Log -LogFile $LogFile -Level INFO -Message "##############################
 ############################
 
 # variables
-# list of ntp servers
-$PeerList = "tik.cesnet.cz tak.cesnet.cz ntp.nic.cz"
+# list of pool of ntp czech servers
+# https://www.ntppool.org/zone/cz
+$PeerList = "0.cz.pool.ntp.org 1.cz.pool.ntp.org 2.cz.pool.ntp.org 3.cz.pool.ntp.org"
 
 Write-Host "Stopping service w32time"
 Write-Log -LogFile $LogFile -Level INFO -Message "Stopping service w32time"
