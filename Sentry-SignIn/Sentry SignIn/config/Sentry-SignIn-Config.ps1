@@ -2,7 +2,7 @@
 # custom variables - begin
 # Report Files Directory
 # default directory
-$ReportDir = $ScriptDir + "\reports"
+$ReportDir = $ScriptLogDir
 
 # Example
 # $ReportDir = "c:\reports"

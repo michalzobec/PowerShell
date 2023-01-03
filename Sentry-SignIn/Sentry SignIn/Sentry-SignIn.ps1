@@ -4,8 +4,8 @@ Set-StrictMode -Version 5
 <#
 .SYNOPSIS
     Sentry SignIn (NirSoft WinLogOnView Wrapper)
-    version 22.12.09.143459
-    (c) 2022 Michal Zobec. All Rights Reserved.
+    version 23.01.02.121559
+    (c) 2021-2023 Michal Zobec. All Rights Reserved.
 
 .DESCRIPTION
     Runs Sentry SignIn daily.
@@ -31,9 +31,9 @@ Set-StrictMode -Version 5
 # script name
 $ScriptName = "Sentry SignIn"
 # script version
-$ScriptVersion = "22.12.09.143459"
+$ScriptVersion = "23.01.02.121559"
 $CopyRightYearFrom = "2021"
-$CopyRightYearTo = "2022"
+$CopyRightYearTo = "2023"
 #endregion
 
 
@@ -68,9 +68,16 @@ Function Write-Log {
     }
 }
 
-$LogDate = Get-Date -Format "yyyyMMddHHmmss"
+$LogDate = Get-Date -Format "yyyyMMdd-HHmm"
+$ReportDate = Get-Date -Format "yyyyMMdd-HHmm"
 $ScriptDir = (Split-Path $myinvocation.MyCommand.Path)
-$ScriptLogDir = $ScriptDir + "\logs"
+$ScriptLogDir = $env:ProgramData + "\sentry-signin"
+if (!(Test-Path $ScriptLogDir -PathType Container)) {
+    Write-Warning "Log directory is not exist. Creating."
+    New-Item $ScriptLogDir -ItemType Directory
+} else {
+    Write-Host "Log directory is exist."
+}
 $LogFile = $ScriptLogDir + "\Sentry-SignIn-log-$LogDate.txt"
 #endregion
 
@@ -103,20 +110,56 @@ Write-Log -LogFile $LogFile -Level DEBUG -Message "Configuration file path: '$Cf
 ######
 
 #region variables
-$ReportDate = Get-Date -Format "yyyyMMdd-HHmm"
-$ReportFile = $ReportDir + "\Sentry-SignIn-report-$ReportDate.html"
+$ReportFileHTML = $ReportDir + "\Sentry-SignIn-report-$ReportDate.html"
+$ReportFileCSV = $ReportDir + "\Sentry-SignIn-report-$ReportDate.csv"
 #endregion
 
 Write-Log -LogFile $LogFile -Level DEBUG -Message "ScriptLogDir path: '$ScriptLogDir'"
 Write-Log -LogFile $LogFile -Level DEBUG -Message "Log file path: '$LogFile'"
 Write-Log -LogFile $LogFile -Level DEBUG -Message "ReportDir path: '$ReportDir'"
-Write-Log -LogFile $LogFile -Level DEBUG -Message "Report file path: '$ReportFile'"
+Write-Log -LogFile $LogFile -Level DEBUG -Message "HTML Report file path: '$ReportFileHTML'"
+Write-Log -LogFile $LogFile -Level DEBUG -Message "CSV Report file path: '$ReportFileCSV'"
 Write-Log -LogFile $LogFile -Level DEBUG -Message "Main executable file path: '$WinLogOnViewFile'"
-#region execute
-Write-Log -LogFile $LogFile -Level INFO -Message "Generating of the report"
-Start-Process -FilePath "$WinLogOnViewFile" -ArgumentList "/shtml ""$ReportFile"" /sort ""Logon Time""" -NoNewWindow -Wait
-Write-Log -LogFile $LogFile -Level INFO -Message "Report was generated"
+
+#region Check-IsElevated
+# load script with function
+Write-Log -LogFile $LogFile -Level DEBUG -Message "Calling shared script Check-IsElevated ..."
+Write-Log -LogFile $LogFile -Level DEBUG -Message "Script path: '$ScriptDir\lib\Check-IsElevated.ps1'"
+. $ScriptDir\lib\Check-IsElevated.ps1
+# call function
+if (-not(Check-IsElevated)) {
+    Write-Host "Please run this script as an administrator." -ForegroundColor Red
+    Write-Log -LogFile $LogFile -Level ERROR -Message "Administrator permission is missing."
+    Write-Log -LogFile $LogFile -Level INFO -Message "Exiting."
+    exit
+}
+#endregion
+
+#region generate html report
+Write-Log -LogFile $LogFile -Level INFO -Message "Generating of the HTML report"
+$RunExec1 = Start-Process -FilePath "$WinLogOnViewFile" -ArgumentList "/shtml ""$ReportFileHTML"" /sort ""Logon Time""" -NoNewWindow -Wait -PassThru
+if ($RunExec1.ExitCode -ne 0) {
+    Write-Host "Generating of the report was failed with error code: $($RunExec1.ExitCode)." -ForegroundColor Red
+    Write-Log -LogFile $LogFile -Level ERROR -Message "Generating of the HTML report was failed with error code: $($RunExec1.ExitCode)."
+    Write-Log -LogFile $LogFile -Level INFO -Message "Exiting."
+    exit
+}
+Write-Log -LogFile $LogFile -Level INFO -Message "HTML Report was generated"
+#endregion
+
+#region generate csv report
+Write-Log -LogFile $LogFile -Level INFO -Message "Generating of the CSV report"
+$RunExec2 = Start-Process -FilePath "$WinLogOnViewFile" -ArgumentList "/scomma ""$ReportFileCSV"" /sort ""Logon Time""" -NoNewWindow -Wait -PassThru
+if ($RunExec2.ExitCode -ne 0) {
+    Write-Host "Generating of the report was failed with error code: $($RunExec2.ExitCode)." -ForegroundColor Red
+    Write-Log -LogFile $LogFile -Level ERROR -Message "Generating of the CSV report was failed with error code: $($RunExec2.ExitCode)."
+    Write-Log -LogFile $LogFile -Level INFO -Message "Exiting."
+    exit
+}
+Write-Log -LogFile $LogFile -Level INFO -Message "CSV Report was generated"
 #endregion
 
 Write-Log -LogFile $LogFile -Level INFO -Message "Script execution completed"
 Write-Log -LogFile $LogFile -Level INFO -Message "#######################################################"
+
+Write-Host "Script execution completed"
