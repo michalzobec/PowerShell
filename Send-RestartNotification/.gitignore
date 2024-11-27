@@ -1,0 +1,97 @@
+﻿# ZOBEC Consulting
+# gitignore shared file
+# revision 19.08.13.023759
+#
+# Copyright (c) 2015-2019 ZOBEC Consulting. All Rights Reserved.
+
+### directories
+#
+**/[Dd]ocs/[Rr]evisions/
+#
+**/[Dd]ocs/[Ss]ecurity[Ss]can/
+#
+**/[Ii]so/
+#
+**/[Ll]ogs/
+#
+**/[Ss]ource/
+
+### temporary directory
+**/[Tt]mp/
+
+### support directory
+# installation source media
+**/[Ss]upport/[Mm]icrosoft-[Uu]pdate/
+# installation source media
+**/[Ss]upport/[Uu]pdate-[Dd]efender[Dd]efinitions/
+# installation source media
+**/[Ss]upport/[Mm]icrosoft-[Uu]pdate/
+# installation source media
+**/[Ss]upport/[Ss]ource/
+
+### file types
+*.exe
+*.dll
+*.bak
+*.zip
+*.wim
+*.vhdx
+*.avhdx
+*.vhd
+*.bin
+*.cab
+*.msi
+*.mst
+*.msp
+*.msu
+*.ini
+*.inf
+*.ico
+*.admx
+*.adml
+*.pol
+*.pdf
+*.tag
+*.tag+
+
+### Ignore files build by Visual Studio
+*.obj
+*.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.suo
+*.tlb
+*.tlh
+*.cache
+*.ilk
+*.log
+*.lib
+*.sbr
+
+### specific file names
+*-log-*.txt
+default-power-plan.cfg
+notes.txt
+versions.txt
+thumbs.db
+desktop.ini
+ZobecImageBuildTmp.md
+AutounattendSource*.xml
+1install.cmd
+2uninstall.cmd
+
+### components of AppDeployToolkit
+**/Deploy-Application.exe.config
+**/AppDeployToolkit/
+# **/AppDeployToolkit/AppDeployToolkitBanner.png
+# **/AppDeployToolkit/AppDeployToolkitConfig.xml
+# **/AppDeployToolkit/AppDeployToolkitExtensions.ps1
+# **/AppDeployToolkit/AppDeployToolkitHelp.ps1
+# **/AppDeployToolkit/AppDeployToolkitLogo.ico
+# **/AppDeployToolkit/AppDeployToolkitMain.cs
+# **/AppDeployToolkit/AppDeployToolkitMain.ps1
